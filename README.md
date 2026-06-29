@@ -1,18 +1,21 @@
 <div align="center">
 
-<img src="public/hyrbase_logo.png" alt="HyrBase Logo" width="120"/>
+<img src="./public/hyrbase_logo.png" alt="HyrBase Logo" width="140"/>
 
 # HyrBase
 
-### The smarter way to get hired.
+### AI-Powered Job Application Management Platform
 
-An AI-powered job application management platform that helps job seekers organize applications, manage resumes, analyze resume compatibility, and gain insights throughout their career journey.
+Organize job applications, manage resumes, track hiring progress, and receive AI-powered career assistance—all in one platform.
 
-![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)
+<br>
+
+![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)
 ![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?logo=supabase)
-![TailwindCSS](https://img.shields.io/badge/TailwindCSS-06B6D4?logo=tailwindcss)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-06B6D4?logo=tailwindcss)
+![Gemini](https://img.shields.io/badge/Gemini-2.5_Flash-8E75B2?logo=google)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
 </div>
@@ -21,160 +24,233 @@ An AI-powered job application management platform that helps job seekers organiz
 
 ## 📖 About
 
-HyrBase is a modern SaaS platform designed to simplify the job search process.
-
-Instead of managing applications through spreadsheets, notes, and multiple resume versions, HyrBase provides a centralized workspace where users can:
-
-- 📋 Track every job application
-- 📄 Manage multiple resume versions
-- 🤖 Analyze resume compatibility using AI
-- ✍️ Generate personalized cover letters
-- 📊 Monitor application progress through analytics
-- 🎯 Stay organized throughout the hiring process
-
-The project is being built using modern software engineering practices with a focus on scalability, performance, maintainability, and user experience.
+HyrBase is an AI-powered job application management platform built to simplify the job search process. It helps users organize job applications, manage multiple resumes, monitor application progress, analyze resume compatibility with job descriptions, and receive AI-assisted career guidance—all within a secure and modern web application.
 
 ---
 
-## ✨ Features
+# ✨ Features
 
-### Current
+## 📄 Resume Management
 
-- Landing Page
-- Authentication
-- Responsive Dashboard Layout
-
-### Planned
-
-- Job Application Tracker
-- Resume Manager
-- AI Resume Analysis
-- AI Cover Letter Generator
-- Analytics Dashboard
-- Interview Timeline
-- Notifications
-- Resume Match Scoring
-- Search & Filtering
+* Upload and manage multiple PDF resumes
+* Set a default resume
+* Secure resume preview and download
+* Rename and delete resumes
+* AI-powered ATS compatibility analysis
+* Resume Match scoring
+* Resume-specific recommendations
 
 ---
 
-## 🛠 Tech Stack
+## 💼 Job Application Management
 
-### Frontend
+* Create, edit, and delete job applications
+* Upload a resume for every application
+* Upload an optional cover letter (PDF)
+* Track application status
+* Maintain application status history
+* Store:
 
-- Next.js 15
-- React 19
-- TypeScript
-- Tailwind CSS
-- shadcn/ui
-- Radix UI
-- Framer Motion
-
-### Backend
-
-- Supabase
-- PostgreSQL
-- Supabase Auth
-- Supabase Storage
-
-### Development
-
-- Git
-- GitHub
-- Claude Code
-- OpenAI API (Upcoming)
+  * Company
+  * Position
+  * Employment Type
+  * Salary
+  * Salary Type (Hourly / Weekly / Monthly)
+  * Job Description
+  * Recruiter Information
+  * Notes
 
 ---
 
-## 📂 Project Structure
+## 🤖 AI Career Assistant
 
-```
+* AI-powered career assistant
+* Resume improvement suggestions
+* ATS optimization recommendations
+* Resume comparison
+* Job description explanation
+* Interview preparation assistance
+* Personalized career guidance
+* AI-generated cover letters
+* Persistent conversation history
+
+---
+
+## 📊 Analytics
+
+* Total Applications Overview
+* Application Funnel
+* Status Breakdown
+* Resume Performance
+* Application Trends
+* Most Applied Roles
+* Most Requested Skills
+* Salary Insights
+* Weekly Application Goals
+* Job Search Activity
+
+---
+
+## 📅 Planner
+
+* Monthly Calendar
+* Weekly Calendar
+* Agenda View
+* Interview Scheduling
+* Assessment Deadlines
+* Follow-up Reminders
+* Upcoming Events
+* Weekly Goal Tracking
+
+---
+
+## 👤 Account Management
+
+* Secure Authentication
+* Profile Management
+* Profile Picture Upload
+* Password Management
+
+---
+
+## 🔒 Security
+
+* Supabase Authentication
+* Row Level Security (RLS)
+* Protected Dashboard Routes
+* Secure File Uploads
+* Private Storage Buckets
+* Signed URL File Access
+
+---
+
+# 🖥️ Frontend
+
+* Next.js 16 (App Router)
+* React 19
+* TypeScript
+* Tailwind CSS v4
+* shadcn/ui
+* Radix UI
+* Lucide React
+* Recharts
+* React Hook Form
+* Zod
+
+---
+
+# ⚙️ Backend
+
+* Supabase Authentication
+* PostgreSQL Database
+* Supabase Storage
+* Row Level Security (RLS)
+* Server Actions
+* Secure File Uploads
+* Signed URLs
+* Database Triggers & Policies
+
+---
+
+# 🤖 AI
+
+* Google Gemini AI
+* PDF Text Extraction
+* Resume Analysis
+* ATS Compatibility Analysis
+* Resume Match Analysis
+* AI Career Assistant
+
+---
+
+# 🚀 Deployment
+
+* Vercel
+* Supabase Cloud
+
+---
+
+# 📁 Project Structure
+
+```text
 app/
 components/
 lib/
-hooks/
-types/
 public/
-middleware.ts
+supabase/
+types/
 ```
 
 ---
 
-## 🚀 Getting Started
+# ⚡ Getting Started
 
-Clone the repository
+Clone the repository:
 
 ```bash
 git clone https://github.com/totaaa654/hyrbase.git
 ```
 
-Navigate into the project
+Navigate to the project:
 
 ```bash
 cd hyrbase
 ```
 
-Install dependencies
+Install dependencies:
 
 ```bash
 npm install
 ```
 
-Create your environment file
+Create a `.env.local` file:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=YOUR_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
+NEXT_PUBLIC_SUPABASE_URL=
+
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+
+GEMINI_API_KEY=
 ```
 
-Run the development server
+Run the development server:
 
 ```bash
 npm run dev
 ```
 
-Open
+---
 
-```
-http://localhost:3000
-```
+# 📌 Tech Stack
+
+| Category       | Technologies                                        |
+| -------------- | --------------------------------------------------- |
+| Frontend       | Next.js, React, TypeScript, Tailwind CSS, shadcn/ui |
+| Backend        | Supabase, PostgreSQL, Storage, Server Actions       |
+| Authentication | Supabase Auth                                       |
+| AI             | Google Gemini AI                                    |
+| Charts         | Recharts                                            |
+| Validation     | Zod                                                 |
+| Forms          | React Hook Form                                     |
+| Deployment     | Vercel                                              |
 
 ---
 
-## 📅 Roadmap
+# 🎯 Roadmap
 
-- [x] Project Initialization
-- [x] GitHub Repository
-- [x] UI Foundation
-- [ ] Authentication
-- [ ] Dashboard
-- [ ] Application Management
-- [ ] Resume Upload
-- [ ] AI Resume Analysis
-- [ ] Analytics
-- [ ] Deployment
-
----
-
-## 🎯 Project Goal
-
-HyrBase aims to become an intelligent career workspace where job seekers can organize, analyze, and improve every stage of their job application journey.
-
-Rather than being just another application tracker, the platform focuses on helping users make smarter career decisions through AI-powered insights and modern productivity tools.
-
----
-
-## 👨‍💻 Author
-
-**Jozza Galang**
-
-- GitHub: https://github.com/totaaa654
-- LinkedIn: https://www.linkedin.com/in/jozza-galang-20aa14247/
+* Google Calendar Integration
+* Outlook Calendar Integration
+* Email Notifications
+* Push Notifications
+* Resume Version Comparison
+* AI Mock Interviews
+* Company Wishlist
+* Job Recommendation System
 
 ---
 
 <div align="center">
 
-Built with ❤️ using Next.js, Supabase, and TypeScript.
+Made with ❤️ using Next.js, Supabase, and Google Gemini AI.
 
 </div>
