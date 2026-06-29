@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { Plus, Briefcase, TrendingUp, Trophy, BarChart2 } from "lucide-react";
+import { Plus, Briefcase, TrendingUp, Trophy, BarChart2, CalendarDays, Clock, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { getApplications } from "../applications/actions";
+import { getUpcomingEvents } from "../analytics/actions";
+import { EVENT_TYPE_CONFIG } from "@/components/analytics/event-form";
 import type { JobApplication } from "@/types/application";
 
 function calcStats(apps: JobApplication[]) {
@@ -53,7 +55,10 @@ export default async function DashboardPage() {
     "there";
   const firstName = name.split(" ")[0];
 
-  const applications = await getApplications();
+  const [applications, upcomingEvents] = await Promise.all([
+    getApplications(),
+    getUpcomingEvents(3),
+  ]);
   const { total, inProgress, offers, responseRate } = calcStats(applications);
 
   const recentApps = applications.slice(0, 5);
@@ -145,6 +150,52 @@ export default async function DashboardPage() {
                 </span>
               </Link>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Upcoming events ── */}
+      {upcomingEvents.length > 0 && (
+        <div>
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="size-4 text-primary" />
+              <h2 className="text-sm font-semibold">Upcoming Events</h2>
+            </div>
+            <Link href="/analytics" className="text-xs text-primary hover:underline">
+              Open Planner
+            </Link>
+          </div>
+          <div className="divide-y divide-border rounded-xl border border-border bg-card">
+            {upcomingEvents.map((ev) => {
+              const cfg = EVENT_TYPE_CONFIG[ev.event_type];
+              const timeStr = ev.all_day
+                ? new Date(ev.start_time).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                : new Date(ev.start_time).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+              return (
+                <Link
+                  key={ev.id}
+                  href="/analytics"
+                  className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
+                >
+                  <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${cfg.color}`}>
+                    {cfg.label}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{ev.title}</p>
+                    {ev.application && (
+                      <p className="truncate text-xs text-muted-foreground">
+                        {ev.application.company_name} · {ev.application.position}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                    <Clock className="size-3" />
+                    {timeStr}
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       )}

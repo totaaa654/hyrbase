@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Loader2, PenLine, Sparkles, BookOpen, X } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +18,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ResumeSelector } from "@/components/resumes/resume-selector";
+import { CoverLetterSection, type CoverLetterData } from "@/components/applications/cover-letter-section";
 import { createApplication, updateApplication } from "@/app/(dashboard)/applications/actions";
+import { deleteCoverLetterFromStorage } from "@/app/(dashboard)/applications/cover-letter-actions";
 import {
   STATUSES,
   EMPLOYMENT_TYPES,
@@ -56,12 +58,10 @@ const schema = z.object({
     .optional()
     .or(z.literal("")),
   job_description: z.string().optional(),
-  cover_letter: z.string().optional(),
   notes: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
-type CoverLetterMode = "none" | "write";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -107,42 +107,6 @@ function ContentCard({ title, children }: { title: string; children: React.React
   );
 }
 
-/* ─── Cover letter mode selector ─────────────────────────────── */
-function CoverLetterModeButton({
-  active,
-  disabled,
-  icon: Icon,
-  label,
-  sub,
-  onClick,
-}: {
-  active: boolean;
-  disabled?: boolean;
-  icon: React.ElementType;
-  label: string;
-  sub: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`flex flex-1 flex-col items-center gap-1 rounded-lg border px-3 py-2.5 text-center text-xs transition-colors ${
-        disabled
-          ? "cursor-not-allowed border-border opacity-40"
-          : active
-            ? "border-primary/50 bg-primary/10 text-primary"
-            : "border-border text-muted-foreground hover:border-primary/30 hover:bg-muted"
-      }`}
-    >
-      <Icon className="size-4" />
-      <span className="font-semibold">{label}</span>
-      <span className="text-[10px] leading-tight opacity-70">{sub}</span>
-    </button>
-  );
-}
-
 /* ─── Props ───────────────────────────────────────────────────── */
 interface ApplicationFormProps {
   mode: "create" | "edit";
@@ -154,9 +118,16 @@ interface ApplicationFormProps {
 export function ApplicationForm({ mode, application, resumes }: ApplicationFormProps) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
-  const [coverLetterMode, setCoverLetterMode] = useState<CoverLetterMode>(
-    application?.cover_letter ? "write" : "none"
-  );
+
+  // Cover letter file state — managed outside react-hook-form
+  const [coverLetterData, setCoverLetterData] = useState<CoverLetterData>({
+    fileUrl: application?.cover_letter_file_url ?? null,
+    fileName: application?.cover_letter_file_name ?? null,
+    fileSize: application?.cover_letter_file_size ?? null,
+    uploadedAt: application?.cover_letter_uploaded_at ?? null,
+  });
+  // Paths to delete from storage after a successful form submit
+  const pendingDeleteRef = useRef<string[]>([]);
 
   const {
     register,
@@ -183,7 +154,6 @@ export function ApplicationForm({ mode, application, resumes }: ApplicationFormP
       recruiter_name: application?.recruiter_name ?? "",
       recruiter_email: application?.recruiter_email ?? "",
       job_description: application?.job_description ?? "",
-      cover_letter: application?.cover_letter ?? "",
       notes: application?.notes ?? "",
     },
   });
@@ -208,13 +178,22 @@ export function ApplicationForm({ mode, application, resumes }: ApplicationFormP
       recruiter_name: values.recruiter_name || null,
       recruiter_email: values.recruiter_email || null,
       job_description: values.job_description || null,
-      cover_letter: coverLetterMode === "none" ? null : values.cover_letter || null,
       notes: values.notes || null,
+      // If a PDF is attached, clear any legacy text; otherwise preserve it
+      cover_letter: coverLetterData.fileUrl ? null : (application?.cover_letter ?? null),
+      // Cover letter PDF fields
+      cover_letter_file_url: coverLetterData.fileUrl,
+      cover_letter_file_name: coverLetterData.fileName,
+      cover_letter_file_size: coverLetterData.fileSize,
+      cover_letter_uploaded_at: coverLetterData.uploadedAt,
     };
 
     if (mode === "create") {
       const result = await createApplication(clean);
       if (result.error) { setServerError(result.error); return; }
+      for (const path of pendingDeleteRef.current) {
+        deleteCoverLetterFromStorage(path).catch(() => {});
+      }
       router.push(`/applications/${result.id}`);
     } else {
       const result = await updateApplication(application!.id, {
@@ -222,6 +201,9 @@ export function ApplicationForm({ mode, application, resumes }: ApplicationFormP
         previousStatus: application!.status,
       });
       if (result.error) { setServerError(result.error); return; }
+      for (const path of pendingDeleteRef.current) {
+        deleteCoverLetterFromStorage(path).catch(() => {});
+      }
       router.push(`/applications/${application!.id}`);
     }
   }
@@ -353,57 +335,14 @@ export function ApplicationForm({ mode, application, resumes }: ApplicationFormP
 
             {/* Cover letter */}
             <ContentCard title="Cover Letter">
-              {/* Mode selector */}
-              <div className="flex gap-2">
-                <CoverLetterModeButton
-                  active={coverLetterMode === "none"}
-                  icon={X}
-                  label="None"
-                  sub="No cover letter"
-                  onClick={() => setCoverLetterMode("none")}
-                />
-                <CoverLetterModeButton
-                  active={coverLetterMode === "write"}
-                  icon={PenLine}
-                  label="Write"
-                  sub="Type manually"
-                  onClick={() => setCoverLetterMode("write")}
-                />
-                <CoverLetterModeButton
-                  active={false}
-                  disabled
-                  icon={Sparkles}
-                  label="AI Generate"
-                  sub="Coming soon"
-                  onClick={() => {}}
-                />
-                <CoverLetterModeButton
-                  active={false}
-                  disabled
-                  icon={BookOpen}
-                  label="Saved"
-                  sub="Coming soon"
-                  onClick={() => {}}
-                />
-              </div>
-
-              {coverLetterMode === "write" && (
-                <div className="space-y-1.5">
-                  <Textarea
-                    id="cover_letter"
-                    rows={8}
-                    placeholder="Write your cover letter here…"
-                    className="resize-y"
-                    {...register("cover_letter")}
-                  />
-                </div>
-              )}
-
-              {coverLetterMode === "none" && (
-                <p className="rounded-lg bg-muted/50 px-4 py-3 text-center text-xs text-muted-foreground">
-                  No cover letter attached to this application.
-                </p>
-              )}
+              <CoverLetterSection
+                value={coverLetterData}
+                onChange={setCoverLetterData}
+                onPendingDelete={(path) => {
+                  pendingDeleteRef.current = [...pendingDeleteRef.current, path];
+                }}
+                legacyText={application?.cover_letter}
+              />
             </ContentCard>
 
             {/* Notes */}

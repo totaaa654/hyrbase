@@ -14,8 +14,6 @@ import {
   MessageSquare,
   StickyNote,
   FileText,
-  Eye,
-  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -24,6 +22,9 @@ import { StatusTimeline } from "@/components/applications/status-timeline";
 import { DeleteButton } from "@/components/applications/delete-button";
 import { ResumeViewButtons } from "@/components/applications/resume-view-buttons";
 import { ResumeAnalysisPanel } from "@/components/applications/resume-analysis-panel";
+import { CoverLetterViewCard } from "@/components/applications/cover-letter-view-card";
+import { ExpandableCard } from "@/components/applications/expandable-card";
+import { AnalysisSidebarCards } from "@/components/applications/analysis-sidebar-cards";
 import { getApplication } from "../actions";
 import { getResumeAnalysis } from "./analysis/actions";
 import { formatSalary } from "@/types/application";
@@ -40,7 +41,7 @@ function daysSince(dateStr: string) {
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("en-US", {
-    month: "long",
+    month: "short",
     day: "numeric",
     year: "numeric",
   });
@@ -56,27 +57,6 @@ function formatDateTime(dateStr: string) {
   });
 }
 
-function DetailRow({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: React.ElementType;
-  label: string;
-  value?: string | null;
-}) {
-  if (!value) return null;
-  return (
-    <div className="space-y-0.5">
-      <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-        <Icon className="size-3.5 shrink-0" />
-        {label}
-      </p>
-      <p className="text-sm text-foreground">{value}</p>
-    </div>
-  );
-}
-
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-xl border border-border bg-card p-5">
@@ -84,6 +64,30 @@ function SectionCard({ title, children }: { title: string; children: React.React
         {title}
       </h3>
       {children}
+    </div>
+  );
+}
+
+function StatRow({
+  icon: Icon,
+  label,
+  value,
+  children,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value?: string | null;
+  children?: React.ReactNode;
+}) {
+  if (!value && !children) return null;
+  return (
+    <div className="flex items-start gap-2">
+      <Icon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+      <div className="min-w-0">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        {value && <p className="text-xs font-medium text-foreground">{value}</p>}
+        {children}
+      </div>
     </div>
   );
 }
@@ -111,15 +115,11 @@ export default async function ApplicationDetailPage({ params }: Props) {
   );
 
   return (
-    <div className="mx-auto max-w-5xl flex-1 overflow-y-auto p-6">
+    <div className="max-w-5xl p-6">
+
       {/* ── Back nav + actions ── */}
       <div className="mb-6 flex items-center justify-between">
-        <Button
-          variant="ghost"
-          size="sm"
-          asChild
-          className="-ml-2 gap-2 text-muted-foreground"
-        >
+        <Button variant="ghost" size="sm" asChild className="-ml-2 gap-2 text-muted-foreground">
           <Link href="/applications">
             <ArrowLeft className="size-4" />
             Applications
@@ -127,18 +127,12 @@ export default async function ApplicationDetailPage({ params }: Props) {
         </Button>
 
         <div className="flex items-center gap-2">
-          <DeleteButton
-            applicationId={application.id}
-            companyName={application.company_name}
-          />
+          <DeleteButton applicationId={application.id} companyName={application.company_name} />
           <Button
             size="sm"
             asChild
             className="gap-2 border-0"
-            style={{
-              background:
-                "linear-gradient(135deg, oklch(0.558 0.288 293), oklch(0.65 0.22 310))",
-            }}
+            style={{ background: "linear-gradient(135deg, oklch(0.558 0.288 293), oklch(0.65 0.22 310))" }}
           >
             <Link href={`/applications/${application.id}/edit`}>Edit</Link>
           </Button>
@@ -146,30 +140,26 @@ export default async function ApplicationDetailPage({ params }: Props) {
       </div>
 
       {/* ── Header card ── */}
-      <div className="mb-6 rounded-xl border border-border bg-card p-6">
+      <div className="mb-5 rounded-xl border border-border bg-card p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
           {application.company_logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={application.company_logo_url}
               alt={application.company_name}
-              className="size-16 shrink-0 rounded-2xl border border-border object-contain p-1"
+              className="size-14 shrink-0 rounded-2xl border border-border object-contain p-1"
             />
           ) : (
-            <div className="flex size-16 shrink-0 items-center justify-center rounded-2xl border border-border bg-muted text-xl font-bold text-foreground">
+            <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl border border-border bg-muted text-xl font-bold text-foreground">
               {application.company_name[0]?.toUpperCase()}
             </div>
           )}
 
-          <div className="flex-1 space-y-2">
+          <div className="flex-1 min-w-0 space-y-2">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h1 className="text-xl font-bold text-foreground">
-                  {application.position}
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  {application.company_name}
-                </p>
+              <div className="min-w-0">
+                <h1 className="text-xl font-bold text-foreground">{application.position}</h1>
+                <p className="text-sm text-muted-foreground">{application.company_name}</p>
               </div>
               <StatusBadge status={application.status} />
             </div>
@@ -200,7 +190,7 @@ export default async function ApplicationDetailPage({ params }: Props) {
                 <Clock className="size-3" />
                 {daysSinceApplied === 0
                   ? "Applied today"
-                  : `${daysSinceApplied} day${daysSinceApplied !== 1 ? "s" : ""} since application`}
+                  : `${daysSinceApplied}d since application`}
               </span>
               <span className="text-muted-foreground/60">
                 Updated {formatDateTime(application.updated_at)}
@@ -210,60 +200,32 @@ export default async function ApplicationDetailPage({ params }: Props) {
             {showFollowUp && (
               <div className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-500">
                 <AlertCircle className="size-3.5 shrink-0" />
-                No updates in {daysSinceUpdated} days — consider following up
-                with the recruiter.
+                No updates in {daysSinceUpdated} days — consider following up.
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* ── Body ── */}
+      {/* ── Two-column body ── */}
       <div className="grid gap-5 lg:grid-cols-3">
 
-        {/* Left: details */}
-        <div className="space-y-5 lg:col-span-2">
-
-          {/* Application Details */}
-          <SectionCard title="Application Details">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <DetailRow
-                icon={Briefcase}
-                label="Application Source"
-                value={application.application_source}
-              />
-              <DetailRow
-                icon={DollarSign}
-                label="Compensation"
-                value={salary}
-              />
-
-              {/* Resume */}
-              {application.resume ? (
-                <div className="space-y-1 sm:col-span-2">
-                  <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                    <FileText className="size-3.5 shrink-0" />
-                    Resume Used
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <p className="text-sm font-medium text-foreground">
-                      {application.resume.display_name}
-                    </p>
-                    <ResumeViewButtons
-                      storagePath={application.resume.file_url}
-                      displayName={application.resume.display_name}
-                    />
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          </SectionCard>
+        {/* ── Left column: main content ── */}
+        <div className="space-y-4 lg:col-span-2">
 
           {/* Recruiter */}
           {(application.recruiter_name || application.recruiter_email) && (
             <SectionCard title="Recruiter">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <DetailRow icon={User} label="Name" value={application.recruiter_name} />
+              <div className="flex flex-wrap gap-5">
+                {application.recruiter_name && (
+                  <div className="space-y-0.5">
+                    <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                      <User className="size-3.5" />
+                      Name
+                    </p>
+                    <p className="text-sm text-foreground">{application.recruiter_name}</p>
+                  </div>
+                )}
                 {application.recruiter_email && (
                   <div className="space-y-0.5">
                     <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
@@ -285,58 +247,168 @@ export default async function ApplicationDetailPage({ params }: Props) {
 
           {/* Job Description */}
           {application.job_description && (
-            <SectionCard title="Job Description">
+            <ExpandableCard
+              title="Job Description"
+              expandLabel="View Full Job Description"
+              preview={
+                <p className="line-clamp-5 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+                  {application.job_description}
+                </p>
+              }
+            >
               <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
                 {application.job_description}
               </p>
-            </SectionCard>
+            </ExpandableCard>
           )}
 
-          {/* Cover Letter */}
-          {application.cover_letter && (
-            <SectionCard title="Cover Letter">
+          {/* Cover Letter — PDF */}
+          {application.cover_letter_file_url && (
+            <ExpandableCard
+              title="Cover Letter"
+              expandLabel="Preview & Download"
+              preview={
+                <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-3">
+                  <FileText className="size-4 shrink-0 text-primary" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {application.cover_letter_file_name ?? "Cover Letter"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">PDF · Expand to preview or download</p>
+                  </div>
+                </div>
+              }
+            >
+              <CoverLetterViewCard
+                fileName={application.cover_letter_file_name ?? "Cover Letter"}
+                fileSize={application.cover_letter_file_size}
+                uploadedAt={application.cover_letter_uploaded_at}
+                storagePath={application.cover_letter_file_url}
+              />
+            </ExpandableCard>
+          )}
+
+          {/* Cover Letter — legacy text */}
+          {!application.cover_letter_file_url && application.cover_letter && (
+            <ExpandableCard
+              title="Cover Letter"
+              expandLabel="View Full Cover Letter"
+              preview={
+                <div className="flex items-start gap-2">
+                  <MessageSquare className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                  <p className="line-clamp-3 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+                    {application.cover_letter}
+                  </p>
+                </div>
+              }
+            >
               <div className="flex items-start gap-2">
                 <MessageSquare className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                 <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
                   {application.cover_letter}
                 </p>
               </div>
-            </SectionCard>
+            </ExpandableCard>
           )}
 
           {/* Notes */}
           {application.notes && (
-            <SectionCard title="Notes">
+            <ExpandableCard
+              title="Notes"
+              expandLabel="View All Notes"
+              preview={
+                <div className="flex items-start gap-2">
+                  <StickyNote className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                  <p className="line-clamp-3 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+                    {application.notes}
+                  </p>
+                </div>
+              }
+            >
               <div className="flex items-start gap-2">
                 <StickyNote className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                 <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
                   {application.notes}
                 </p>
               </div>
-            </SectionCard>
+            </ExpandableCard>
           )}
+
+          {/* AI Resume Analysis Panel */}
+          <ResumeAnalysisPanel
+            applicationId={application.id}
+            hasResume={!!application.resume}
+            hasJobDescription={!!application.job_description?.trim()}
+            initialAnalysis={existingAnalysis}
+          />
 
         </div>
 
-        {/* Right: timeline */}
-        <div>
+        {/* ── Right column: sidebar ── */}
+        <div className="space-y-4">
+
+          {/* Status History */}
           <SectionCard title="Status History">
             <StatusTimeline history={application.status_history} />
           </SectionCard>
+
+          {/* AI Summary + Quick Scores */}
+          <AnalysisSidebarCards analysis={existingAnalysis} />
+
+          {/* Quick Stats */}
+          <div className="rounded-xl border border-border bg-card p-5">
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Quick Stats
+            </h3>
+            <div className="space-y-3">
+              {application.resume && (
+                <StatRow icon={FileText} label="Resume Used">
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-xs font-medium text-foreground truncate">
+                      {application.resume.display_name}
+                    </p>
+                    <ResumeViewButtons
+                      storagePath={application.resume.file_url}
+                      displayName={application.resume.display_name}
+                    />
+                  </div>
+                </StatRow>
+              )}
+
+              <StatRow
+                icon={Calendar}
+                label="Date Applied"
+                value={formatDate(application.date_applied)}
+              />
+
+              <StatRow
+                icon={Clock}
+                label="Last Updated"
+                value={formatDate(application.updated_at)}
+              />
+
+              <StatRow
+                icon={Briefcase}
+                label="Type"
+                value={`${application.employment_type} · ${application.work_setup}`}
+              />
+
+              {salary && (
+                <StatRow icon={DollarSign} label="Salary" value={salary} />
+              )}
+
+              {application.application_source && (
+                <StatRow
+                  icon={ExternalLink}
+                  label="Source"
+                  value={application.application_source}
+                />
+              )}
+            </div>
+          </div>
+
         </div>
-
       </div>
-
-      {/* ── AI Resume Analysis ── */}
-      <div className="mt-5 rounded-xl border border-border bg-card p-6">
-        <ResumeAnalysisPanel
-          applicationId={application.id}
-          hasResume={!!application.resume}
-          hasJobDescription={!!application.job_description?.trim()}
-          initialAnalysis={existingAnalysis}
-        />
-      </div>
-
     </div>
   );
 }

@@ -84,6 +84,10 @@ export interface JobApplication {
   date_applied: string;
   resume_id: string | null;
   cover_letter: string | null;
+  cover_letter_file_url: string | null;
+  cover_letter_file_name: string | null;
+  cover_letter_file_size: number | null;
+  cover_letter_uploaded_at: string | null;
   notes: string | null;
   status: Status;
   created_at: string;

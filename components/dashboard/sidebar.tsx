@@ -20,7 +20,7 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/applications", label: "Applications", icon: Briefcase },
   { href: "/resumes", label: "Resumes", icon: FileText },
-  { href: "/ai-tools", label: "AI Tools", icon: Sparkles },
+  { href: "/ai-assistant", label: "AI Assistant", icon: Sparkles },
   { href: "/analytics", label: "Analytics", icon: BarChart2 },
 ] as const;
 
@@ -41,7 +41,7 @@ export function Sidebar({ user }: SidebarProps) {
   const initials = displayName[0].toUpperCase();
 
   return (
-    <aside className="flex h-full w-60 shrink-0 flex-col border-r border-border bg-sidebar">
+    <aside className="flex h-full w-[260px] shrink-0 flex-col overflow-y-auto border-r border-border bg-sidebar shadow-sm">
       {/* Logo */}
       <div className="flex h-14 items-center gap-2.5 border-b border-border px-4">
         <Image
@@ -108,11 +108,23 @@ export function Sidebar({ user }: SidebarProps) {
         </Link>
 
         <div className="flex items-center gap-2.5 rounded-lg px-3 py-2">
-          <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/20">
-            <span className="text-xs font-semibold text-primary">
-              {initials}
-            </span>
-          </div>
+          {(user.user_metadata?.avatar_url as string | undefined) ? (
+            <div className="relative size-7 shrink-0 overflow-hidden rounded-full ring-1 ring-border">
+              <Image
+                src={user.user_metadata.avatar_url as string}
+                alt={displayName}
+                fill
+                className="object-cover"
+                unoptimized
+              />
+            </div>
+          ) : (
+            <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/20">
+              <span className="text-xs font-semibold text-primary">
+                {initials}
+              </span>
+            </div>
+          )}
           <p className="flex-1 truncate text-xs font-medium text-foreground">
             {displayName}
           </p>
