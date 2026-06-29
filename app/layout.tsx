@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 
@@ -19,6 +20,10 @@ export const metadata: Metadata = {
   title: "HyrBase — AI-Powered Job Application Tracker",
   description:
     "Organize your job search, analyze resumes with AI, and generate personalized cover letters.",
+  icons: {
+    icon: "/hyrbase_logo.png",
+    apple: "/hyrbase_logo.png",
+  },
 };
 
 export default function RootLayout({
@@ -40,6 +45,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
+          <Toaster richColors position="bottom-right" />
         </ThemeProvider>
       </body>
     </html>

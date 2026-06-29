@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
@@ -9,7 +10,10 @@ export default function AuthLayout({
   return (
     <div className="relative flex min-h-full flex-col overflow-hidden">
       {/* ── Animated orbs background ── */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+      >
         <div
           className="absolute -left-[20%] -top-[30%] size-[600px] rounded-full blur-[120px]"
           style={{
@@ -44,18 +48,27 @@ export default function AuthLayout({
         }}
       />
 
-      {/* Top bar — logo + theme toggle */}
+      {/* Top bar */}
       <header className="flex h-14 items-center justify-between px-6">
-        <Link href="/" className="text-lg font-extrabold tracking-tight">
-          Hyr
-          <span
-            className="bg-clip-text text-transparent"
-            style={{
-              backgroundImage:
-                "linear-gradient(135deg, oklch(0.627 0.265 293), oklch(0.72 0.20 310))",
-            }}
-          >
-            Base
+        <Link href="/" className="flex items-center gap-2">
+          <Image
+            src="/hyrbase_logo.png"
+            alt="HyrBase"
+            width={28}
+            height={28}
+            className="rounded-md overflow-hidden"
+          />
+          <span className="text-base font-extrabold tracking-tight">
+            Hyr
+            <span
+              className="bg-clip-text text-transparent"
+              style={{
+                backgroundImage:
+                  "linear-gradient(135deg, oklch(0.627 0.265 293), oklch(0.72 0.20 310))",
+              }}
+            >
+              Base
+            </span>
           </span>
         </Link>
         <ThemeToggle />

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
@@ -42,8 +43,15 @@ export function Sidebar({ user }: SidebarProps) {
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col border-r border-border bg-sidebar">
       {/* Logo */}
-      <div className="flex h-14 items-center border-b border-border px-4">
-        <span className="text-lg font-extrabold tracking-tight">
+      <div className="flex h-14 items-center gap-2.5 border-b border-border px-4">
+        <Image
+          src="/hyrbase_logo.png"
+          alt="HyrBase"
+          width={28}
+          height={28}
+          className="rounded-md overflow-hidden shrink-0"
+        />
+        <span className="text-base font-extrabold tracking-tight">
           Hyr
           <span
             className="bg-clip-text text-transparent"

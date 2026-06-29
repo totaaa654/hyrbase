@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,6 @@ export function Hero() {
         aria-hidden
         className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
       >
-        {/* Orb 1 — large purple, top-left */}
         <div
           className="absolute -left-[15%] -top-[20%] size-[700px] rounded-full blur-[130px]"
           style={{
@@ -21,7 +21,6 @@ export function Hero() {
             animation: "orb-float-1 16s ease-in-out infinite",
           }}
         />
-        {/* Orb 2 — indigo, bottom-right */}
         <div
           className="absolute -bottom-[15%] -right-[10%] size-[600px] rounded-full blur-[110px]"
           style={{
@@ -29,7 +28,6 @@ export function Hero() {
             animation: "orb-float-2 14s ease-in-out infinite",
           }}
         />
-        {/* Orb 3 — violet-pink, center-right */}
         <div
           className="absolute right-[15%] top-[30%] size-[400px] rounded-full blur-[90px]"
           style={{
@@ -42,7 +40,7 @@ export function Hero() {
       {/* ── Dot-grid texture ── */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 opacity-[0.4]"
+        className="pointer-events-none absolute inset-0 -z-10 opacity-40"
         style={{
           backgroundImage:
             "radial-gradient(circle, oklch(0.55 0.01 285 / 0.18) 1px, transparent 1px)",
@@ -57,6 +55,27 @@ export function Hero() {
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         className="max-w-3xl space-y-8"
       >
+        {/* Logo mark */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.85 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="flex justify-center"
+        >
+          <Image
+            src="/hyrbase_logo.png"
+            alt="HyrBase"
+            width={88}
+            height={88}
+            className="rounded-[22px] overflow-hidden"
+            style={{
+              boxShadow:
+                "0 8px 40px oklch(0.627 0.265 293 / 0.45), 0 2px 12px oklch(0.627 0.265 293 / 0.25)",
+            }}
+            priority
+          />
+        </motion.div>
+
         {/* Badge */}
         <motion.div
           initial={{ opacity: 0, scale: 0.93 }}
@@ -96,7 +115,7 @@ export function Hero() {
           <Button
             size="lg"
             asChild
-            className="h-11 gap-2 border-0 px-7 text-sm font-semibold shadow-lg"
+            className="h-11 gap-2 border-0 px-7 text-sm font-semibold"
             style={{
               background:
                 "linear-gradient(135deg, oklch(0.558 0.288 293), oklch(0.65 0.22 310))",
