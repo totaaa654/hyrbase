@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, Loader2, ShieldCheck, ArrowLeft } from "lucide-react";
@@ -102,6 +102,19 @@ function PasswordInput({
 type PageState = "loading" | "ready" | "invalid" | "done";
 
 export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="size-4 animate-spin" />
+        Loading…
+      </div>
+    }>
+      <ResetPasswordContent />
+    </Suspense>
+  );
+}
+
+function ResetPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pageState, setPageState] = useState<PageState>("loading");
