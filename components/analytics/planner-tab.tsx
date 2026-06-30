@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  getCalendarEvents, toggleEventComplete, setWeeklyGoal,
+  getCalendarEvents, toggleEventComplete,
 } from "@/app/(dashboard)/analytics/actions";
 import { EventForm, EVENT_TYPE_CONFIG } from "./event-form";
 import type { CalendarEvent, RawApplication } from "@/types/analytics";
@@ -97,7 +97,7 @@ function EventChip({
       </button>
 
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
           <span className={cn("rounded-full border px-1.5 py-0.5 text-[9px] font-semibold", cfg.color)}>
             {cfg.label}
           </span>
@@ -129,8 +129,10 @@ function EventChip({
               onClick={(e) => e.stopPropagation()}
             >
               <Building2 className="size-2.5" />
-              {event.application.company_name} · {event.application.position}
-              <ExternalLink className="size-2" />
+              <span className="truncate max-w-[140px]">
+                {event.application.company_name} · {event.application.position}
+              </span>
+              <ExternalLink className="size-2 shrink-0" />
             </Link>
           )}
         </div>
@@ -187,17 +189,21 @@ function MonthView({
   }, [events]);
 
   return (
-    <div className="flex-1 overflow-auto">
-      {/* Day headers */}
+    // overflow-x-hidden prevents the 7-column grid from causing horizontal scroll
+    <div className="w-full overflow-x-hidden">
+      {/* Day-of-week headers */}
       <div className="grid grid-cols-7 border-b border-border">
         {DAY_LABELS.map((d) => (
-          <div key={d} className="py-2 text-center text-xs font-medium text-muted-foreground">
-            {d}
+          <div key={d} className="py-2 text-center text-[10px] font-medium text-muted-foreground sm:text-xs">
+            {/* Full label on sm+, single letter on xs */}
+            <span className="hidden sm:inline">{d}</span>
+            <span className="sm:hidden">{d[0]}</span>
           </div>
         ))}
       </div>
-      {/* Grid */}
-      <div className="grid grid-cols-7" style={{ gridTemplateRows: `repeat(6, minmax(90px, 1fr))` }}>
+
+      {/* Calendar grid — no inline style; min-h on cells adapts at each breakpoint */}
+      <div className="grid grid-cols-7">
         {cells.map(({ date, isCurrentMonth }, i) => {
           const key = date.toISOString().slice(0, 10);
           const dayEvents = eventsByDay.get(key) ?? [];
@@ -206,20 +212,24 @@ function MonthView({
             <div
               key={i}
               className={cn(
-                "relative min-h-[90px] cursor-pointer border-b border-r border-border p-1 transition-colors hover:bg-muted/20",
+                // Mobile: 56px min-height, sm: 72px, md+: 90px
+                "relative min-h-[56px] cursor-pointer border-b border-r border-border p-0.5 transition-colors hover:bg-muted/20 sm:min-h-[72px] sm:p-1 md:min-h-[90px]",
                 !isCurrentMonth && "opacity-40",
                 today && "bg-primary/5"
               )}
               onClick={() => isCurrentMonth && onDayClick(key)}
             >
+              {/* Day number circle */}
               <div className={cn(
-                "mb-1 flex size-6 items-center justify-center rounded-full text-xs font-medium",
+                "mb-0.5 flex size-5 items-center justify-center rounded-full text-[10px] font-medium sm:mb-1 sm:size-6 sm:text-xs",
                 today ? "bg-primary text-primary-foreground" : "text-foreground"
               )}>
                 {date.getDate()}
               </div>
+
+              {/* Event chips — cap at 2 on mobile to avoid overflow */}
               <div className="space-y-0.5">
-                {dayEvents.slice(0, 3).map((ev) => (
+                {dayEvents.slice(0, 2).map((ev) => (
                   <EventChip
                     key={ev.id}
                     event={ev}
@@ -228,9 +238,29 @@ function MonthView({
                     onToggle={() => onToggle(ev)}
                   />
                 ))}
+                {/* Show third chip only on sm+ */}
+                {dayEvents.length > 2 && (
+                  <div className="hidden sm:block">
+                    {dayEvents[2] && (
+                      <EventChip
+                        event={dayEvents[2]}
+                        compact
+                        onClick={(e?: any) => { e?.stopPropagation?.(); onEventClick(dayEvents[2]); }}
+                        onToggle={() => onToggle(dayEvents[2])}
+                      />
+                    )}
+                  </div>
+                )}
+                {/* Overflow count */}
                 {dayEvents.length > 3 && (
                   <div className="px-1 text-[9px] text-muted-foreground">
                     +{dayEvents.length - 3} more
+                  </div>
+                )}
+                {/* On mobile, show "N more" when more than 2 */}
+                {dayEvents.length > 2 && (
+                  <div className="px-1 text-[9px] text-muted-foreground sm:hidden">
+                    +{dayEvents.length - 2} more
                   </div>
                 )}
               </div>
@@ -276,7 +306,7 @@ function AgendaView({
   }
 
   return (
-    <div className="space-y-6 overflow-y-auto p-4">
+    <div className="space-y-6 p-3 sm:p-4">
       {grouped.map(({ date, events: evs }) => (
         <div key={date}>
           <div className={cn(
@@ -319,7 +349,7 @@ function AgendaView({
   );
 }
 
-// ── Upcoming panel ────────────────────────────────────────────────────────────
+// ── Upcoming / sidebar panel ──────────────────────────────────────────────────
 
 function UpcomingPanel({
   events,
@@ -350,11 +380,18 @@ function UpcomingPanel({
   const goalPct = Math.min(Math.round((thisWeek / Math.max(weeklyGoal, 1)) * 100), 100);
 
   return (
-    <div className="flex w-72 shrink-0 flex-col border-l border-border bg-card">
-      {/* Weekly goal mini */}
+    /*
+      Mobile  : full width, stacked below calendar, border-top
+      Tablet+ : w-64 fixed sidebar with border-left
+      Desktop : w-72 fixed sidebar with border-left
+    */
+    <div className="flex w-full shrink-0 flex-col border-t border-border bg-card md:w-64 md:border-l md:border-t-0 lg:w-72">
+      {/* Weekly goal */}
       <div className="border-b border-border p-4">
         <div className="mb-2 flex items-center justify-between">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Weekly Goal</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Weekly Goal
+          </p>
           <span className="text-xs font-bold text-primary">{thisWeek}/{weeklyGoal}</span>
         </div>
         <div className="h-1.5 overflow-hidden rounded-full bg-muted/50">
@@ -366,9 +403,9 @@ function UpcomingPanel({
         <p className="mt-1 text-[10px] text-muted-foreground">{goalPct}% of weekly goal</p>
       </div>
 
-      {/* Upcoming */}
+      {/* Upcoming header */}
       <div className="flex items-center justify-between px-4 py-3">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Upcoming</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Upcoming</p>
         <button
           onClick={onCreateNew}
           className="flex items-center gap-1 rounded-lg bg-primary/10 px-2 py-1 text-[10px] font-medium text-primary hover:bg-primary/20"
@@ -378,7 +415,8 @@ function UpcomingPanel({
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 pb-4">
+      {/* Upcoming events list */}
+      <div className="px-3 pb-4 md:flex-1 md:overflow-y-auto">
         {upcoming.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
             <CalendarDays className="size-6 text-muted-foreground/30" />
@@ -393,14 +431,14 @@ function UpcomingPanel({
                 <div
                   key={ev.id}
                   className={cn(
-                    "rounded-lg border p-2.5 transition-colors hover:bg-muted/20 cursor-pointer",
+                    "cursor-pointer rounded-lg border p-2.5 transition-colors hover:bg-muted/20",
                     isOv ? "border-red-400/30 bg-red-500/5" : "border-border"
                   )}
                   onClick={() => onEventClick(ev)}
                 >
                   <div className="flex items-start gap-2">
                     <span className={cn("mt-0.5 size-1.5 shrink-0 rounded-full", cfg.dot)} />
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="truncate text-xs font-medium">{ev.title}</p>
                       <p className="text-[10px] text-muted-foreground">
                         {formatDate(ev.start_time)}
@@ -485,12 +523,20 @@ export function PlannerTab({ apps, weeklyGoal, initialUpcoming }: Props) {
   }
 
   return (
-    <div className="flex h-full overflow-hidden">
-      {/* Calendar area */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Calendar header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-3">
-          <div className="flex items-center gap-3">
+    /*
+      Mobile (<768px): flex-col — calendar on top, upcoming panel below; parent scrolls
+      Tablet (768px+) and Desktop: flex-row — calendar left, panel right side-by-side
+    */
+    <div className="flex flex-col overflow-x-hidden md:h-full md:flex-row md:overflow-hidden">
+
+      {/* ── Calendar area ─────────────────────────────────────────────────── */}
+      <div className="flex min-w-0 flex-col md:flex-1 md:overflow-hidden">
+
+        {/* Calendar controls header */}
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-border px-3 py-3 sm:px-5">
+
+          {/* Left: nav arrows + month label + Today */}
+          <div className="flex items-center gap-2">
             <div className="flex items-center gap-1">
               <button
                 onClick={() => navigate(-1)}
@@ -505,7 +551,7 @@ export function PlannerTab({ apps, weeklyGoal, initialUpcoming }: Props) {
                 <ChevronRight className="size-4" />
               </button>
             </div>
-            <h2 className="text-sm font-semibold">
+            <h2 className="whitespace-nowrap text-sm font-semibold">
               {MONTH_NAMES[month]} {year}
             </h2>
             <button
@@ -515,21 +561,21 @@ export function PlannerTab({ apps, weeklyGoal, initialUpcoming }: Props) {
                 setMonth(t.getMonth());
                 loadEvents(t.getFullYear(), t.getMonth());
               }}
-              className="rounded-lg border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted/50"
+              className="rounded-lg border border-border px-2 py-1 text-xs font-medium hover:bg-muted/50"
             >
               Today
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* View toggle */}
+          {/* Right: view toggle + New Event button */}
+          <div className="flex items-center gap-1 sm:gap-2">
             <div className="flex gap-1 rounded-lg border border-border p-0.5">
               {(["month", "agenda"] as CalView[]).map((v) => (
                 <button
                   key={v}
                   onClick={() => setView(v)}
                   className={cn(
-                    "rounded-md px-2.5 py-1 text-xs font-medium capitalize transition-colors",
+                    "rounded-md px-2 py-1 text-xs font-medium capitalize transition-colors sm:px-2.5",
                     view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
@@ -539,17 +585,22 @@ export function PlannerTab({ apps, weeklyGoal, initialUpcoming }: Props) {
             </div>
             <Button
               size="sm"
-              className="gap-1.5 text-xs"
+              className="h-7 gap-1 px-2 text-xs sm:px-3"
               onClick={() => { setSelectedEvent(null); setDefaultDate(undefined); setFormOpen(true); }}
             >
               <Plus className="size-3.5" />
-              New Event
+              {/* Full label on sm+, abbreviated on mobile */}
+              <span className="hidden sm:inline">New Event</span>
+              <span className="sm:hidden">New</span>
             </Button>
           </div>
         </div>
 
-        {/* Calendar body */}
-        <div className={cn("flex-1 overflow-auto", isLoading && "opacity-60 pointer-events-none")}>
+        {/* Calendar body (month grid or agenda list) */}
+        <div className={cn(
+          "overflow-auto md:flex-1",
+          isLoading && "pointer-events-none opacity-60"
+        )}>
           {view === "month" ? (
             <MonthView
               year={year}
@@ -569,7 +620,7 @@ export function PlannerTab({ apps, weeklyGoal, initialUpcoming }: Props) {
         </div>
       </div>
 
-      {/* Upcoming panel */}
+      {/* ── Upcoming / goal panel ──────────────────────────────────────────── */}
       <UpcomingPanel
         events={events}
         weeklyGoal={weeklyGoal}
@@ -579,7 +630,7 @@ export function PlannerTab({ apps, weeklyGoal, initialUpcoming }: Props) {
         onCreateNew={() => { setSelectedEvent(null); setDefaultDate(undefined); setFormOpen(true); }}
       />
 
-      {/* Event form */}
+      {/* ── Event form dialog ──────────────────────────────────────────────── */}
       <EventForm
         open={formOpen}
         onClose={() => { setFormOpen(false); setSelectedEvent(null); }}

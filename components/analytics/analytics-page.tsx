@@ -66,8 +66,8 @@ export function AnalyticsPage({ payload, initialUpcoming }: Props) {
   return (
     <div className="flex h-full flex-col overflow-hidden">
       {/* ── Header ── */}
-      <div className="shrink-0 border-b border-border bg-card px-6 pt-5 pb-0">
-        <div className="flex items-end justify-between gap-4">
+      <div className="shrink-0 border-b border-border bg-card px-4 pt-4 pb-0 sm:px-6 sm:pt-5">
+        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 sm:items-end">
           <div>
             <h1 className="text-xl font-bold tracking-tight">Analytics & Planner</h1>
             <p className="mt-0.5 text-xs text-muted-foreground">
@@ -76,7 +76,7 @@ export function AnalyticsPage({ payload, initialUpcoming }: Props) {
           </div>
           {/* Filters — only shown on analytics tab */}
           {tab === "analytics" && (
-            <div className="flex items-center gap-2 pb-0.5">
+            <div className="flex flex-wrap items-center gap-2 pb-0.5">
               <select
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value as DateRange)}
@@ -101,7 +101,7 @@ export function AnalyticsPage({ payload, initialUpcoming }: Props) {
         </div>
 
         {/* Tab bar */}
-        <div className="mt-4 flex gap-1">
+        <div className="mt-3 flex gap-1 sm:mt-4">
           {tabs.map(({ key, label, icon: Icon }) => (
             <button
               key={key}
