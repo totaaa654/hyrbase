@@ -1,22 +1,92 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
-const loginSchema = z.object({
+// ── Schema ────────────────────────────────────────────────────────────────────
+
+const schema = z.object({
   email: z.string().email("Enter a valid email address"),
   password: z.string().min(1, "Password is required"),
 });
+type FormValues = z.infer<typeof schema>;
 
-type LoginFormValues = z.infer<typeof loginSchema>;
+// ── Message banner (needs Suspense for useSearchParams) ───────────────────────
+
+const BANNERS: Record<string, { text: string; variant: "error" | "info" }> = {
+  "link-expired": {
+    text: "Your confirmation link has expired or is invalid. Please sign up again.",
+    variant: "error",
+  },
+  confirmed: {
+    text: "Your email has been confirmed. You can now sign in.",
+    variant: "info",
+  },
+};
+
+function MessageBanner() {
+  const searchParams = useSearchParams();
+  const key = searchParams.get("message");
+  if (!key) return null;
+  const banner = BANNERS[key];
+  if (!banner) return null;
+  return (
+    <p
+      className={cn(
+        "rounded-lg px-3 py-2.5 text-sm",
+        banner.variant === "error"
+          ? "bg-destructive/10 text-destructive"
+          : "bg-primary/10 text-primary"
+      )}
+    >
+      {banner.text}
+    </p>
+  );
+}
+
+// ── Password toggle input ─────────────────────────────────────────────────────
+
+function PasswordField({
+  id,
+  error,
+  ...props
+}: React.InputHTMLAttributes<HTMLInputElement> & { error?: string }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div>
+      <div className="relative">
+        <Input
+          id={id}
+          type={show ? "text" : "password"}
+          className={cn("pr-9", error && "border-destructive focus-visible:ring-destructive/30")}
+          {...props}
+        />
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={() => setShow((s) => !s)}
+          className="absolute inset-y-0 right-0 flex w-9 items-center justify-center text-muted-foreground hover:text-foreground"
+          aria-label={show ? "Hide password" : "Show password"}
+        >
+          {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+        </button>
+      </div>
+      {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
+    </div>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function LoginPage() {
   const router = useRouter();
@@ -26,48 +96,51 @@ export default function LoginPage() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
-  });
+  } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
-  async function onSubmit(data: LoginFormValues) {
+  async function onSubmit(data: FormValues) {
     setServerError(null);
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({
       email: data.email,
       password: data.password,
     });
-
     if (error) {
       setServerError(error.message);
       return;
     }
-
     router.push("/dashboard");
     router.refresh();
   }
 
   return (
-    <div className="w-full max-w-sm">
-      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-        <div className="mb-6 space-y-1">
-          <h1 className="text-xl font-semibold tracking-tight">Welcome back</h1>
+    <div className="w-full max-w-sm sm:max-w-md">
+      {/* Card */}
+      <div className="rounded-2xl border border-border bg-card px-6 py-8 shadow-sm sm:px-8 sm:py-10">
+        {/* Heading */}
+        <div className="mb-7 space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
           <p className="text-sm text-muted-foreground">
-            Sign in to your account
+            Sign in to your HyrBase account
           </p>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          {/* Message banner */}
+          <Suspense>
+            <MessageBanner />
+          </Suspense>
+
+          {/* Email */}
           <div className="space-y-1.5">
-            <label htmlFor="email" className="text-sm font-medium">
-              Email
-            </label>
+            <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
               placeholder="you@example.com"
               autoComplete="email"
               aria-invalid={!!errors.email}
+              className={cn(errors.email && "border-destructive focus-visible:ring-destructive/30")}
               {...register("email")}
             />
             {errors.email && (
@@ -75,11 +148,10 @@ export default function LoginPage() {
             )}
           </div>
 
+          {/* Password */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label htmlFor="password" className="text-sm font-medium">
-                Password
-              </label>
+              <Label htmlFor="password">Password</Label>
               <Link
                 href="/forgot-password"
                 className="text-xs text-primary hover:underline"
@@ -87,41 +159,41 @@ export default function LoginPage() {
                 Forgot password?
               </Link>
             </div>
-            <Input
+            <PasswordField
               id="password"
-              type="password"
               placeholder="••••••••"
               autoComplete="current-password"
               aria-invalid={!!errors.password}
+              error={errors.password?.message}
               {...register("password")}
             />
-            {errors.password && (
-              <p className="text-xs text-destructive">
-                {errors.password.message}
-              </p>
-            )}
           </div>
 
+          {/* Server error */}
           {serverError && (
-            <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <p className="rounded-lg bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
               {serverError}
             </p>
           )}
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting && <Loader2 className="animate-spin" />}
-            Sign in
+            {isSubmitting ? (
+              <>
+                <Loader2 className="animate-spin" />
+                Signing in…
+              </>
+            ) : (
+              "Sign in"
+            )}
           </Button>
         </form>
       </div>
 
-      <p className="mt-4 text-center text-sm text-muted-foreground">
+      {/* Footer link */}
+      <p className="mt-5 text-center text-sm text-muted-foreground">
         Don&apos;t have an account?{" "}
-        <Link
-          href="/signup"
-          className="font-medium text-primary hover:underline"
-        >
-          Sign up
+        <Link href="/signup" className="font-medium text-primary hover:underline">
+          Create one
         </Link>
       </p>
     </div>

@@ -1,50 +1,173 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Loader2, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
-const signupSchema = z
+const RESEND_COOLDOWN = 60;
+
+// ── Schema ────────────────────────────────────────────────────────────────────
+
+const schema = z
   .object({
-    fullName: z
-      .string()
-      .min(2, "Name must be at least 2 characters")
-      .max(100, "Name is too long"),
+    fullName: z.string().min(2, "Name must be at least 2 characters").max(100, "Name is too long"),
     email: z.string().email("Enter a valid email address"),
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .max(72, "Password is too long"),
+    password: z.string().min(8, "Password must be at least 8 characters").max(72, "Password is too long"),
     confirmPassword: z.string(),
   })
-  .refine((data) => data.password === data.confirmPassword, {
+  .refine((d) => d.password === d.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
   });
 
-type SignupFormValues = z.infer<typeof signupSchema>;
+type FormValues = z.infer<typeof schema>;
+
+// ── Password field with show/hide toggle ──────────────────────────────────────
+
+function PasswordField({
+  id,
+  error,
+  ...props
+}: React.InputHTMLAttributes<HTMLInputElement> & { error?: string }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div>
+      <div className="relative">
+        <Input
+          id={id}
+          type={show ? "text" : "password"}
+          className={cn("pr-9", error && "border-destructive focus-visible:ring-destructive/30")}
+          {...props}
+        />
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={() => setShow((s) => !s)}
+          className="absolute inset-y-0 right-0 flex w-9 items-center justify-center text-muted-foreground hover:text-foreground"
+          aria-label={show ? "Hide password" : "Show password"}
+        >
+          {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+        </button>
+      </div>
+      {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
+    </div>
+  );
+}
+
+// ── Check-your-email screen ───────────────────────────────────────────────────
+
+function CheckEmailScreen({ email }: { email: string }) {
+  const [cooldown, setCooldown] = useState(0);
+  const [resendError, setResendError] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const id = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(id);
+  }, [cooldown]);
+
+  async function handleResend() {
+    setResendError(null);
+    setResending(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    });
+    setResending(false);
+    if (error) { setResendError(error.message); return; }
+    setCooldown(RESEND_COOLDOWN);
+  }
+
+  return (
+    <div className="w-full max-w-sm sm:max-w-md">
+      <div className="rounded-2xl border border-border bg-card px-6 py-10 shadow-sm sm:px-8 text-center space-y-5">
+        <div
+          className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/10"
+          style={{ animation: "scale-in 0.4s cubic-bezier(0.34,1.56,0.64,1) both" }}
+        >
+          <Mail className="size-8 text-primary" />
+        </div>
+
+        <div className="space-y-1.5">
+          <h2 className="text-2xl font-bold tracking-tight">Check your email</h2>
+          <p className="text-sm text-muted-foreground">We sent a confirmation link to</p>
+          <p className="text-sm font-semibold text-foreground break-all">{email}</p>
+          <p className="text-sm text-muted-foreground">
+            Click the link to activate your account.
+          </p>
+        </div>
+
+        <Button asChild className="w-full">
+          <a href="https://mail.google.com" target="_blank" rel="noopener noreferrer">
+            Open Gmail
+          </a>
+        </Button>
+
+        {resendError && (
+          <p className="rounded-lg bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+            {resendError}
+          </p>
+        )}
+
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={handleResend}
+          disabled={resending || cooldown > 0}
+        >
+          {resending ? (
+            <><Loader2 className="animate-spin" />Sending…</>
+          ) : cooldown > 0 ? (
+            `Resend in ${cooldown}s`
+          ) : (
+            "Resend Email"
+          )}
+        </Button>
+      </div>
+
+      <p className="mt-5 text-center text-sm text-muted-foreground">
+        <Link href="/login" className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
+          <ArrowLeft className="size-3.5" />
+          Back to Login
+        </Link>
+      </p>
+
+      <style>{`
+        @keyframes scale-in {
+          from { opacity: 0; transform: scale(0.6); }
+          to   { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// ── Signup form ───────────────────────────────────────────────────────────────
 
 export default function SignupPage() {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
-  const [emailSent, setEmailSent] = useState(false);
+  const [sentEmail, setSentEmail] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<SignupFormValues>({
-    resolver: zodResolver(signupSchema),
-  });
+  } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
-  async function onSubmit(data: SignupFormValues) {
+  async function onSubmit(data: FormValues) {
     setServerError(null);
     const supabase = createClient();
     const { error } = await supabase.auth.signUp({
@@ -56,106 +179,58 @@ export default function SignupPage() {
       },
     });
 
-    if (error) {
-      setServerError(error.message);
-      return;
-    }
+    if (error) { setServerError(error.message); return; }
 
-    // Supabase may auto-confirm or require email verification depending on project settings.
-    // Try navigating to dashboard; if email confirmation is required, this will be a no-op
-    // and we show the confirmation message instead.
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       router.push("/dashboard");
       router.refresh();
     } else {
-      setEmailSent(true);
+      setSentEmail(data.email);
     }
   }
 
-  if (emailSent) {
-    return (
-      <div className="w-full max-w-sm">
-        <div className="rounded-xl border border-border bg-card p-6 shadow-sm text-center space-y-3">
-          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary/10">
-            <svg
-              className="size-6 text-primary"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={1.5}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
-              />
-            </svg>
-          </div>
-          <h2 className="text-lg font-semibold">Check your email</h2>
-          <p className="text-sm text-muted-foreground">
-            We sent a confirmation link to your inbox. Click it to activate your
-            account.
-          </p>
-        </div>
-        <p className="mt-4 text-center text-sm text-muted-foreground">
-          Already confirmed?{" "}
-          <Link
-            href="/login"
-            className="font-medium text-primary hover:underline"
-          >
-            Sign in
-          </Link>
-        </p>
-      </div>
-    );
-  }
+  if (sentEmail) return <CheckEmailScreen email={sentEmail} />;
 
   return (
-    <div className="w-full max-w-sm">
-      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-        <div className="mb-6 space-y-1">
-          <h1 className="text-xl font-semibold tracking-tight">
-            Create an account
-          </h1>
+    <div className="w-full max-w-sm sm:max-w-md">
+      {/* Card */}
+      <div className="rounded-2xl border border-border bg-card px-6 py-8 shadow-sm sm:px-8 sm:py-10">
+        <div className="mb-7 space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight">Create an account</h1>
           <p className="text-sm text-muted-foreground">
             Start tracking your job search for free
           </p>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          {/* Full name */}
           <div className="space-y-1.5">
-            <label htmlFor="fullName" className="text-sm font-medium">
-              Full name
-            </label>
+            <Label htmlFor="fullName">Full name</Label>
             <Input
               id="fullName"
               type="text"
               placeholder="Alex Johnson"
               autoComplete="name"
               aria-invalid={!!errors.fullName}
+              className={cn(errors.fullName && "border-destructive focus-visible:ring-destructive/30")}
               {...register("fullName")}
             />
             {errors.fullName && (
-              <p className="text-xs text-destructive">
-                {errors.fullName.message}
-              </p>
+              <p className="text-xs text-destructive">{errors.fullName.message}</p>
             )}
           </div>
 
+          {/* Email */}
           <div className="space-y-1.5">
-            <label htmlFor="email" className="text-sm font-medium">
-              Email
-            </label>
+            <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
               placeholder="you@example.com"
               autoComplete="email"
               aria-invalid={!!errors.email}
+              className={cn(errors.email && "border-destructive focus-visible:ring-destructive/30")}
               {...register("email")}
             />
             {errors.email && (
@@ -163,63 +238,52 @@ export default function SignupPage() {
             )}
           </div>
 
+          {/* Password */}
           <div className="space-y-1.5">
-            <label htmlFor="password" className="text-sm font-medium">
-              Password
-            </label>
-            <Input
+            <Label htmlFor="password">Password</Label>
+            <PasswordField
               id="password"
-              type="password"
               placeholder="Min. 8 characters"
               autoComplete="new-password"
               aria-invalid={!!errors.password}
+              error={errors.password?.message}
               {...register("password")}
             />
-            {errors.password && (
-              <p className="text-xs text-destructive">
-                {errors.password.message}
-              </p>
-            )}
           </div>
 
+          {/* Confirm password */}
           <div className="space-y-1.5">
-            <label htmlFor="confirmPassword" className="text-sm font-medium">
-              Confirm password
-            </label>
-            <Input
+            <Label htmlFor="confirmPassword">Confirm password</Label>
+            <PasswordField
               id="confirmPassword"
-              type="password"
-              placeholder="••••••••"
+              placeholder="Re-enter password"
               autoComplete="new-password"
               aria-invalid={!!errors.confirmPassword}
+              error={errors.confirmPassword?.message}
               {...register("confirmPassword")}
             />
-            {errors.confirmPassword && (
-              <p className="text-xs text-destructive">
-                {errors.confirmPassword.message}
-              </p>
-            )}
           </div>
 
           {serverError && (
-            <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <p className="rounded-lg bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
               {serverError}
             </p>
           )}
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting && <Loader2 className="animate-spin" />}
-            Create account
+            {isSubmitting ? (
+              <><Loader2 className="animate-spin" />Creating account…</>
+            ) : (
+              "Create account"
+            )}
           </Button>
         </form>
       </div>
 
-      <p className="mt-4 text-center text-sm text-muted-foreground">
+      {/* Footer link */}
+      <p className="mt-5 text-center text-sm text-muted-foreground">
         Already have an account?{" "}
-        <Link
-          href="/login"
-          className="font-medium text-primary hover:underline"
-        >
+        <Link href="/login" className="font-medium text-primary hover:underline">
           Sign in
         </Link>
       </p>

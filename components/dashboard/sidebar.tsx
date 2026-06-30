@@ -11,30 +11,30 @@ import {
   Sparkles,
   BarChart2,
   Settings,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard",    label: "Dashboard",   icon: LayoutDashboard },
   { href: "/applications", label: "Applications", icon: Briefcase },
-  { href: "/resumes", label: "Resumes", icon: FileText },
+  { href: "/resumes",      label: "Resumes",      icon: FileText },
   { href: "/ai-assistant", label: "AI Assistant", icon: Sparkles },
-  { href: "/analytics", label: "Analytics", icon: BarChart2 },
+  { href: "/analytics",    label: "Analytics",    icon: BarChart2 },
 ] as const;
 
 interface SidebarProps {
   user: User;
+  onClose?: () => void;
 }
 
-export function Sidebar({ user }: SidebarProps) {
+export function Sidebar({ user, onClose }: SidebarProps) {
   const pathname = usePathname();
 
   const isActive = (href: string) =>
-    href === "/dashboard"
-      ? pathname === "/dashboard"
-      : pathname.startsWith(href);
+    href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href);
 
   const displayName =
     (user.user_metadata?.full_name as string | undefined) ?? user.email ?? "U";
@@ -42,27 +42,40 @@ export function Sidebar({ user }: SidebarProps) {
 
   return (
     <aside className="flex h-full w-[260px] shrink-0 flex-col overflow-y-auto border-r border-border bg-sidebar shadow-sm">
-      {/* Logo */}
-      <div className="flex h-14 items-center gap-2.5 border-b border-border px-4">
-        <Image
-          src="/hyrbase_logo.png"
-          alt="HyrBase"
-          width={28}
-          height={28}
-          className="rounded-md overflow-hidden shrink-0"
-        />
-        <span className="text-base font-extrabold tracking-tight">
-          Hyr
-          <span
-            className="bg-clip-text text-transparent"
-            style={{
-              backgroundImage:
-                "linear-gradient(135deg, oklch(0.627 0.265 293), oklch(0.72 0.20 310))",
-            }}
-          >
-            Base
+      {/* Logo row + mobile close button */}
+      <div className="flex h-14 items-center justify-between border-b border-border px-4">
+        <Link href="/dashboard" className="flex items-center gap-2.5" onClick={onClose}>
+          <Image
+            src="/hyrbase_logo.png"
+            alt="HyrBase"
+            width={28}
+            height={28}
+            className="rounded-md overflow-hidden shrink-0"
+          />
+          <span className="text-base font-extrabold tracking-tight">
+            Hyr
+            <span
+              className="bg-clip-text text-transparent"
+              style={{
+                backgroundImage:
+                  "linear-gradient(135deg, oklch(0.627 0.265 293), oklch(0.72 0.20 310))",
+              }}
+            >
+              Base
+            </span>
           </span>
-        </span>
+        </Link>
+
+        {/* Close button — only shown on mobile via the parent's z-50 drawer */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors lg:hidden"
+            aria-label="Close navigation"
+          >
+            <X className="size-4" />
+          </button>
+        )}
       </div>
 
       {/* Navigation */}
@@ -72,6 +85,7 @@ export function Sidebar({ user }: SidebarProps) {
             <li key={href}>
               <Link
                 href={href}
+                onClick={onClose}
                 className={cn(
                   "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   isActive(href)
@@ -96,6 +110,7 @@ export function Sidebar({ user }: SidebarProps) {
       <div className="border-t border-border p-2 space-y-0.5">
         <Link
           href="/settings"
+          onClick={onClose}
           className={cn(
             "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
             pathname.startsWith("/settings")
@@ -120,14 +135,10 @@ export function Sidebar({ user }: SidebarProps) {
             </div>
           ) : (
             <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/20">
-              <span className="text-xs font-semibold text-primary">
-                {initials}
-              </span>
+              <span className="text-xs font-semibold text-primary">{initials}</span>
             </div>
           )}
-          <p className="flex-1 truncate text-xs font-medium text-foreground">
-            {displayName}
-          </p>
+          <p className="flex-1 truncate text-xs font-medium text-foreground">{displayName}</p>
           <LogoutButton />
         </div>
       </div>
