@@ -8,6 +8,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Eye, EyeOff, Loader2, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { isPasswordStrong } from "@/lib/password";
+import { StrengthMeter, PasswordChecklist } from "@/components/auth/password-strength";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,19 +19,32 @@ const RESEND_COOLDOWN = 60;
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
-const schema = z
-  .object({
-    fullName: z.string().min(2, "Name must be at least 2 characters").max(100, "Name is too long"),
-    email: z.string().email("Enter a valid email address"),
-    password: z.string().min(8, "Password must be at least 8 characters").max(72, "Password is too long"),
-    confirmPassword: z.string(),
-  })
-  .refine((d) => d.password === d.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
+const schema = z.object({
+  fullName: z
+    .string()
+    .min(2, "Name must be at least 2 characters")
+    .max(100, "Name is too long"),
+  email: z.string().email("Enter a valid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters").max(72),
+  confirmPassword: z.string(),
+});
 
 type FormValues = z.infer<typeof schema>;
+
+// ── Friendly Supabase error messages ─────────────────────────────────────────
+
+function friendlyError(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes("already registered") || lower.includes("already exists"))
+    return "An account with this email already exists. Try signing in instead.";
+  if (lower.includes("weak password") || lower.includes("password should"))
+    return "Your password is too weak. Please use a stronger password.";
+  if (lower.includes("invalid email"))
+    return "That doesn't look like a valid email address.";
+  if (lower.includes("rate limit") || lower.includes("too many"))
+    return "Too many attempts. Please wait a moment and try again.";
+  return message;
+}
 
 // ── Password field with show/hide toggle ──────────────────────────────────────
 
@@ -138,7 +153,10 @@ function CheckEmailScreen({ email }: { email: string }) {
       </div>
 
       <p className="mt-5 text-center text-sm text-muted-foreground">
-        <Link href="/login" className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
+        <Link
+          href="/login"
+          className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+        >
           <ArrowLeft className="size-3.5" />
           Back to Login
         </Link>
@@ -164,10 +182,21 @@ export default function SignupPage() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
+  // Live values for real-time validation UI
+  const passwordValue = watch("password") ?? "";
+  const confirmValue  = watch("confirmPassword") ?? "";
+
+  const allRulesMet     = isPasswordStrong(passwordValue);
+  const passwordsMatch  = confirmValue !== "" && confirmValue === passwordValue;
+  const canSubmit       = allRulesMet && passwordsMatch && !isSubmitting;
+
   async function onSubmit(data: FormValues) {
+    // Guard: should never reach here if disabled, but keep as safety net
+    if (!allRulesMet || !passwordsMatch) return;
     setServerError(null);
     const supabase = createClient();
     const { error } = await supabase.auth.signUp({
@@ -179,7 +208,10 @@ export default function SignupPage() {
       },
     });
 
-    if (error) { setServerError(error.message); return; }
+    if (error) {
+      setServerError(friendlyError(error.message));
+      return;
+    }
 
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
@@ -194,7 +226,6 @@ export default function SignupPage() {
 
   return (
     <div className="w-full max-w-sm sm:max-w-md">
-      {/* Card */}
       <div className="rounded-2xl border border-border bg-card px-6 py-8 shadow-sm sm:px-8 sm:py-10">
         <div className="mb-7 space-y-1">
           <h1 className="text-2xl font-bold tracking-tight">Create an account</h1>
@@ -238,7 +269,7 @@ export default function SignupPage() {
             )}
           </div>
 
-          {/* Password */}
+          {/* Password + live checklist */}
           <div className="space-y-1.5">
             <Label htmlFor="password">Password</Label>
             <PasswordField
@@ -246,12 +277,13 @@ export default function SignupPage() {
               placeholder="Min. 8 characters"
               autoComplete="new-password"
               aria-invalid={!!errors.password}
-              error={errors.password?.message}
               {...register("password")}
             />
+            <StrengthMeter password={passwordValue} />
+            <PasswordChecklist password={passwordValue} />
           </div>
 
-          {/* Confirm password */}
+          {/* Confirm password + live match indicator */}
           <div className="space-y-1.5">
             <Label htmlFor="confirmPassword">Confirm password</Label>
             <PasswordField
@@ -259,9 +291,10 @@ export default function SignupPage() {
               placeholder="Re-enter password"
               autoComplete="new-password"
               aria-invalid={!!errors.confirmPassword}
-              error={errors.confirmPassword?.message}
               {...register("confirmPassword")}
             />
+            {/* Only show the match row once user starts typing in confirm */}
+            <PasswordChecklist password={passwordValue} confirm={confirmValue} />
           </div>
 
           {serverError && (
@@ -270,7 +303,7 @@ export default function SignupPage() {
             </p>
           )}
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
+          <Button type="submit" className="w-full" disabled={!canSubmit}>
             {isSubmitting ? (
               <><Loader2 className="animate-spin" />Creating account…</>
             ) : (
@@ -280,7 +313,6 @@ export default function SignupPage() {
         </form>
       </div>
 
-      {/* Footer link */}
       <p className="mt-5 text-center text-sm text-muted-foreground">
         Already have an account?{" "}
         <Link href="/login" className="font-medium text-primary hover:underline">
